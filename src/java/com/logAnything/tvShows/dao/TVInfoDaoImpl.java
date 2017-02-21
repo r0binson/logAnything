@@ -22,11 +22,10 @@ public class TVInfoDaoImpl extends Dao implements TVInfoDao {
 
 	@Override
 	public int createNewShow(TVShow tvShow) {
-		String SQL = "Insert into tv_info (id, title, dayOfWeek) values (?, ?, ?)";
+		String SQL = "Insert into tv_info (id, title, dayOfWeek) values (?, ?, '')";
 		Object[] params = new Object[]{
 			tvShow.getId(),
-			tvShow.getTitle(),
-			tvShow.getDayOfWeek()
+			tvShow.getTitle()
 		};
 		return jdbcTemplate.update(SQL, params);
 	}
@@ -39,8 +38,8 @@ public class TVInfoDaoImpl extends Dao implements TVInfoDao {
 	
 	
 	private String tvShowSQLBuilder(String parameter, String value) {
-		StringBuilder SQL = new StringBuilder("select tv_info.id, title, dayOfWeek, max(episode) as 'latestEpisode', downloadDate as downloadDate, max(dateCreated) as 'dateCreated' from tv_info, episodes "
-			+ "where tv_info.id = episodes.tvId ");
+		StringBuilder SQL = new StringBuilder("select tv_info.id, title, dayName(downloadDate) as dayOfWeek, episode as latestEpisode, downloadDate as downloadDate, dateCreated from tv_info, episodes "
+			+ "where tv_info.id = episodes.tvId and episodes.Id in (select max(id) from episodes group by tvId) ");
 
 		if (!parameter.isEmpty() && !value.isEmpty()) {
 			if(parameter.equalsIgnoreCase("id")){
@@ -81,7 +80,7 @@ public class TVInfoDaoImpl extends Dao implements TVInfoDao {
 	public List getTodayShows() {
 		Date today = Calendar.getInstance().getTime();
 		String todayDayOfWeek = getDayOfWeek(today);
-		String SQL = tvShowSQLBuilder("dayOfWeek", todayDayOfWeek);
+		String SQL = tvShowSQLBuilder("dayName(downloadDate)", todayDayOfWeek);
 		return jdbcTemplate.query(SQL, new TVShowRowMapper());
 	}
 	
@@ -92,7 +91,7 @@ public class TVInfoDaoImpl extends Dao implements TVInfoDao {
 
 	@Override
 	public List getShowsByDayOfWeek(String dayOfWeek) {
-		String SQL = tvShowSQLBuilder("dayOfWeek", dayOfWeek);
+		String SQL = tvShowSQLBuilder("dayName(downloadDate)", dayOfWeek);
 		return jdbcTemplate.query(SQL, new TVShowRowMapper());
 	}
 
